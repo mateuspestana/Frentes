@@ -145,12 +145,14 @@ def tab_frentes_por_legislatura():
 
     if st.button("Gerar Matriz", key="btn_matriz"):
         dados_membros: dict[str, dict[int, str]] = {}
+        _membros_raw: dict[str, list[dict]] = {}
 
         progresso = st.progress(0)
         for i, titulo_frente in enumerate(frentes_escolhidas):
             id_frente = mapa_frentes[titulo_frente]
             with st.spinner(f"Buscando membros: {titulo_frente}..."):
                 membros = get_membros_frente(id_frente)
+            _membros_raw[titulo_frente] = membros
             dados_membros[titulo_frente] = {}
             for m in membros:
                 id_dep = m.get("id")
@@ -158,14 +160,20 @@ def tab_frentes_por_legislatura():
                 dados_membros[titulo_frente][id_dep] = titulo_cargo if titulo_cargo else "Sim"
             progresso.progress((i + 1) / len(frentes_escolhidas))
 
+        # mapa_nomes é construído a partir dos próprios membros retornados pela API
+        # (cada membro já traz o campo "nome"), evitando dependência de /deputados
+        # que só cobre a legislatura atual
+        mapa_nomes: dict[int, str] = {}
+        for frente_membros_raw in _membros_raw.values():
+            for m in frente_membros_raw:
+                dep_id = m.get("id")
+                dep_nome = (m.get("nome") or "").strip()
+                if dep_id and dep_nome:
+                    mapa_nomes[dep_id] = dep_nome
+
         todos_ids = set()
         for frente_membros in dados_membros.values():
             todos_ids.update(frente_membros.keys())
-
-        # Buscar nomes dos deputados
-        with st.spinner("Carregando nomes dos deputados..."):
-            todos_deputados = get_todos_deputados()
-        mapa_nomes = {d["id"]: d["nome"] for d in todos_deputados}
 
         linhas = []
         for id_dep in sorted(todos_ids):
