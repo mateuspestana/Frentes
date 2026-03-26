@@ -80,6 +80,21 @@ def get_frentes_deputado(id_deputado: int) -> list[dict]:
         return []
 
 
+@st.cache_data(show_spinner=False)
+def get_orgaos_deputado(id_deputado: int) -> list[dict]:
+    try:
+        resp = requests.get(
+            f"{API_BASE}/deputados/{id_deputado}/orgaos",
+            params={"itens": 200},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        return resp.json().get("dados", [])
+    except Exception as exc:
+        st.error(f"Erro ao buscar comissões do deputado {id_deputado}: {exc}")
+        return []
+
+
 # ---------------------------------------------------------------------------
 # Utilitário de exportação
 # ---------------------------------------------------------------------------
@@ -188,7 +203,7 @@ def tab_frentes_por_legislatura():
             return
 
         df = pd.DataFrame(linhas).set_index("Deputado")
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, width="stretch")
 
         excel_bytes = df_para_excel(df)
         st.download_button(
@@ -205,7 +220,7 @@ def tab_frentes_por_legislatura():
 
 
 def tab_frentes_por_deputado():
-    st.header("Frentes por Deputado")
+    st.header("Frentes e Comissões por Deputado")
 
     with st.spinner("Carregando deputados..."):
         deputados = get_todos_deputados()
@@ -215,6 +230,12 @@ def tab_frentes_por_deputado():
         return
 
     st.caption(f"{len(deputados)} deputados carregados.")
+
+    modo = st.selectbox(
+        "O que deseja buscar?",
+        options=["Somente Frentes", "Somente Comissões", "Frentes e Comissões"],
+        key="modo_busca",
+    )
 
     filtro_dep = st.text_input("Filtrar deputado por nome")
 
@@ -233,39 +254,107 @@ def tab_frentes_por_deputado():
     )
 
     if not deps_escolhidos:
-        st.info("Selecione ao menos um deputado para buscar as frentes.")
+        st.info("Selecione ao menos um deputado para continuar.")
         return
 
-    if st.button("Buscar Frentes", key="btn_frentes_dep"):
-        linhas = []
+    buscar_frentes = modo in ("Somente Frentes", "Frentes e Comissões")
+    buscar_comissoes = modo in ("Somente Comissões", "Frentes e Comissões")
+
+    apenas_comissao_no_nome = False
+    if buscar_comissoes:
+        apenas_comissao_no_nome = st.checkbox(
+            'Apenas com "Comissão" no nome',
+            key="filtro_comissao_nome",
+        )
+
+    def _filtrar_orgaos(orgaos: list[dict]) -> list[dict]:
+        if not apenas_comissao_no_nome:
+            return orgaos
+        return [
+            o for o in orgaos
+            if "comissão" in (o.get("nomeOrgao") or "").lower()
+            or "comissao" in (o.get("nomeOrgao") or "").lower()
+        ]
+
+    if st.button("Buscar", key="btn_busca_dep"):
         progresso = st.progress(0)
+        linhas = []
+
         for i, nome_dep in enumerate(deps_escolhidos):
             id_dep = mapa_deps[nome_dep]
-            with st.spinner(f"Buscando frentes de {nome_dep}..."):
-                frentes = get_frentes_deputado(id_dep)
-            for frente in frentes:
+
+            frentes_dep: list[dict] = []
+            orgaos_dep: list[dict] = []
+
+            if buscar_frentes:
+                with st.spinner(f"Buscando frentes de {nome_dep}..."):
+                    frentes_dep = get_frentes_deputado(id_dep)
+
+            if buscar_comissoes:
+                with st.spinner(f"Buscando comissões de {nome_dep}..."):
+                    orgaos_dep = _filtrar_orgaos(get_orgaos_deputado(id_dep))
+
+            if modo == "Somente Frentes":
+                for f in frentes_dep:
+                    linhas.append(
+                        {
+                            "Deputado": nome_dep,
+                            "Frente": f.get("titulo", ""),
+                            "Legislatura": f.get("idLegislatura", ""),
+                            "Título/Cargo na Frente": f.get("titulo", ""),
+                        }
+                    )
+
+            elif modo == "Somente Comissões":
+                for o in orgaos_dep:
+                    linhas.append(
+                        {
+                            "Deputado": nome_dep,
+                            "Comissão": o.get("nomeOrgao", o.get("siglaOrgao", "")),
+                            "Sigla": o.get("siglaOrgao", ""),
+                            "Cargo": o.get("cargo", ""),
+                            "Início": o.get("dataInicio", ""),
+                            "Fim": o.get("dataFim", ""),
+                        }
+                    )
+
+            else:  # Frentes e Comissões — uma linha por deputado
+                frentes_str = " /// ".join(
+                    f.get("titulo", "") for f in frentes_dep if f.get("titulo")
+                )
+                comissoes_str = " /// ".join(
+                    o.get("nomeOrgao", o.get("siglaOrgao", ""))
+                    for o in orgaos_dep
+                    if o.get("nomeOrgao") or o.get("siglaOrgao")
+                )
                 linhas.append(
                     {
                         "Deputado": nome_dep,
-                        "Frente": frente.get("titulo", ""),
-                        "Legislatura": frente.get("idLegislatura", ""),
-                        "Título/Cargo": (frente.get("titulo") or ""),
+                        "Frentes": frentes_str,
+                        "Comissões": comissoes_str,
                     }
                 )
+
             progresso.progress((i + 1) / len(deps_escolhidos))
 
         if not linhas:
-            st.warning("Nenhuma frente encontrada para os deputados selecionados.")
+            st.warning("Nenhum resultado encontrado para os deputados selecionados.")
             return
 
         df = pd.DataFrame(linhas)
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, width="stretch")
+
+        nome_arquivo = {
+            "Somente Frentes": "frentes_por_deputado.xlsx",
+            "Somente Comissões": "comissoes_por_deputado.xlsx",
+            "Frentes e Comissões": "frentes_comissoes_por_deputado.xlsx",
+        }[modo]
 
         excel_bytes = df_para_excel(df.set_index("Deputado"))
         st.download_button(
             label="Baixar Excel",
             data=excel_bytes,
-            file_name="frentes_por_deputado.xlsx",
+            file_name=nome_arquivo,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
