@@ -63,8 +63,11 @@ def get_membros_frente(id_frente: int) -> list[dict]:
 
 
 @st.cache_data(show_spinner=False)
-def get_todos_deputados() -> list[dict]:
-    return _get_paginado("/deputados")
+def get_todos_deputados(id_legislatura: Optional[int] = None) -> list[dict]:
+    params = {}
+    if id_legislatura is not None:
+        params["idLegislatura"] = id_legislatura
+    return _get_paginado("/deputados", params)
 
 
 @st.cache_data(show_spinner=False)
@@ -222,14 +225,33 @@ def tab_frentes_por_legislatura():
 def tab_frentes_por_deputado():
     st.header("Frentes e Comissões por Deputado")
 
+    with st.spinner("Carregando legislaturas..."):
+        legislaturas = get_legislaturas()
+
+    if not legislaturas:
+        st.error("Não foi possível carregar as legislaturas.")
+        return
+
+    opcoes_leg = {
+        f"{leg['id']} — {leg.get('dataInicio', '')[:4]} a {leg.get('dataFim', '')[:4]}": leg["id"]
+        for leg in legislaturas
+    }
+    leg_label = st.selectbox(
+        "Legislatura",
+        list(opcoes_leg.keys()),
+        key="leg_dep",
+        help="Selecionar uma legislatura lista todos os parlamentares que exerceram mandato nela, incluindo suplentes e quem já saiu.",
+    )
+    id_legislatura_dep = opcoes_leg[leg_label]
+
     with st.spinner("Carregando deputados..."):
-        deputados = get_todos_deputados()
+        deputados = get_todos_deputados(id_legislatura=id_legislatura_dep)
 
     if not deputados:
         st.error("Não foi possível carregar a lista de deputados.")
         return
 
-    st.caption(f"{len(deputados)} deputados carregados.")
+    st.caption(f"{len(deputados)} parlamentares encontrados para esta legislatura.")
 
     modo = st.selectbox(
         "O que deseja buscar?",
