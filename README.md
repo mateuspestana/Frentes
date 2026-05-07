@@ -1,4 +1,4 @@
-# Frentes Parlamentares — ISER | Religião e Poder
+# Atlas das Frentes Parlamentares — ISER | Religião e Poder
 
 Aplicação Streamlit para exploração e exportação de dados sobre frentes parlamentares e comissões da Câmara dos Deputados.
 
@@ -30,21 +30,30 @@ Os dados são obtidos em tempo real pela [API de Dados Abertos da Câmara dos De
 - Exibe resultados tabulares para leitura comparada entre arenas parlamentares
 - Exporta a tabela em Excel
 
+### Aba 3 — Últimas Frentes
+
+- Lista frentes recentes por legislatura (ou em todas)
+- Permite configurar quantidade de resultados
+- Usa ID em ordem decrescente como proxy de recência
+- Exporta a tabela em Excel
+
 ---
 
 ## Como executar
 
-Com o ambiente conda `Quaerite` ativo:
+Pré-requisito: ter o `uv` instalado.
 
 ```bash
-conda activate Quaerite
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
 streamlit run app_frentes.py
 ```
 
-Ou diretamente:
+No Windows (PowerShell), ative com:
 
 ```bash
-conda run -n Quaerite streamlit run app_frentes.py
+.venv\Scripts\Activate.ps1
 ```
 
 O app estará disponível em `http://localhost:8501`.
