@@ -572,8 +572,8 @@ def tab_frentes_recentes():
 
 
 def main():
-    st.set_page_config(page_title="Frentes Parlamentares — ISER", layout="wide")
-    st.title("Frentes Parlamentares")
+    st.set_page_config(page_title="Atlas das Frentes Parlamentares — ISER", layout="wide")
+    st.title("Atlas das Frentes Parlamentares")
     st.caption(
         "Análise de conexões parlamentares a partir de dados públicos da Câmara dos Deputados."
     )
