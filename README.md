@@ -1,6 +1,10 @@
-# Frentes Parlamentares — ISER
+# Frentes Parlamentares — ISER | Religião e Poder
 
-Aplicação Streamlit para exploração e exportação de dados sobre frentes parlamentares da Câmara dos Deputados, desenvolvida para o ISER.
+Aplicação Streamlit para exploração e exportação de dados sobre frentes parlamentares e comissões da Câmara dos Deputados.
+
+Autor: Matheus C. Pestana  
+Vínculo institucional: ISER (Instituto de Estudos da Religião) e plataforma Religião e Poder  
+Sites: [iser.org.br](https://iser.org.br) | [religiaoepoder.org.br](https://religiaoepoder.org.br)
 
 Os dados são obtidos em tempo real pela [API de Dados Abertos da Câmara dos Deputados](https://dadosabertos.camara.leg.br/api/v2).
 
@@ -22,8 +26,8 @@ Os dados são obtidos em tempo real pela [API de Dados Abertos da Câmara dos De
 ### Aba 2 — Frentes por Deputado
 
 - Filtra e seleciona um ou mais deputados por nome
-- Busca todas as frentes das quais cada deputado selecionado faz parte
-- Exibe tabela com: Deputado, Frente, Legislatura e Título/Cargo
+- Busca frentes, comissões ou ambos para cada deputado selecionado
+- Exibe resultados tabulares para leitura comparada entre arenas parlamentares
 - Exporta a tabela em Excel
 
 ---
@@ -51,18 +55,16 @@ O app estará disponível em `http://localhost:8501`.
 
 Listadas em `requirements.txt`:
 
-| Pacote      | Versão mínima |
-|-------------|--------------|
-| streamlit   | 1.21.0       |
-| pandas      | 1.5.3        |
-| requests    | 2.28.2       |
-| openpyxl    | 3.1.2        |
+- `streamlit` >= 1.21.0
+- `pandas` >= 1.5.3
+- `requests` >= 2.28.2
+- `openpyxl` >= 3.1.2
 
 ---
 
 ## Estrutura
 
-```
+```text
 Frentes/
 ├── app_frentes.py   # Aplicação principal
 ├── requirements.txt # Dependências
@@ -77,6 +79,7 @@ API de Dados Abertos da Câmara dos Deputados
 `https://dadosabertos.camara.leg.br/api/v2`
 
 Endpoints utilizados:
+
 - `GET /legislaturas`
 - `GET /frentes`
 - `GET /frentes/{id}/membros`
